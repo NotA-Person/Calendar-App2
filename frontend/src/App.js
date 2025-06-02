@@ -355,22 +355,33 @@ const CalendarView = ({ tasks, activities }) => {
   const getItemsForDate = (date) => {
     if (!date) return [];
     
-    const dateStr = date.toDateString();
+    // Create a date string for comparison (YYYY-MM-DD format)
+    const targetDateStr = date.toISOString().split('T')[0];
     const items = [];
     
-    // Add tasks
+    // Add tasks - check due date
     tasks.forEach(task => {
-      const taskDate = new Date(task.due_date).toDateString();
-      if (taskDate === dateStr) {
-        items.push({ ...task, type: 'task' });
+      try {
+        const taskDate = new Date(task.due_date);
+        const taskDateStr = taskDate.toISOString().split('T')[0];
+        if (taskDateStr === targetDateStr) {
+          items.push({ ...task, type: 'task' });
+        }
+      } catch (error) {
+        console.warn('Invalid task date:', task.due_date);
       }
     });
     
-    // Add activities
+    // Add activities - check start date
     activities.forEach(activity => {
-      const activityDate = new Date(activity.start_datetime).toDateString();
-      if (activityDate === dateStr) {
-        items.push({ ...activity, type: 'activity' });
+      try {
+        const activityDate = new Date(activity.start_datetime);
+        const activityDateStr = activityDate.toISOString().split('T')[0];
+        if (activityDateStr === targetDateStr) {
+          items.push({ ...activity, type: 'activity' });
+        }
+      } catch (error) {
+        console.warn('Invalid activity date:', activity.start_datetime);
       }
     });
     
