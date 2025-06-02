@@ -207,6 +207,13 @@ const App = () => {
           onCancel={() => setShowActivityForm(false)}
         />
       )}
+
+      {/* Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50 max-w-sm">
+          <p className="text-sm font-medium text-gray-900">{notification}</p>
+        </div>
+      )}
     </div>
   );
 };
