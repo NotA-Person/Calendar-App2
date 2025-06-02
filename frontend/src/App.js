@@ -49,6 +49,11 @@ const App = () => {
     }
   };
 
+  const showNotification = (message) => {
+    setNotification(message);
+    setTimeout(() => setNotification(""), 3000);
+  };
+
   const createTask = async (taskData) => {
     try {
       const response = await axios.post(`${API}/users/${DEMO_USER.id}/tasks`, taskData);
@@ -60,10 +65,11 @@ const App = () => {
       await loadUserData();
       
       // Show success feedback
+      showNotification("✅ Task created and added to calendar!");
       console.log("✅ Task created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task. Please try again.");
+      showNotification("❌ Failed to create task. Please try again.");
     }
   };
 
@@ -78,10 +84,11 @@ const App = () => {
       await loadUserData();
       
       // Show success feedback
+      showNotification("✅ Activity created and added to calendar!");
       console.log("✅ Activity created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating activity:", error);
-      alert("Failed to create activity. Please try again.");
+      showNotification("❌ Failed to create activity. Please try again.");
     }
   };
 
