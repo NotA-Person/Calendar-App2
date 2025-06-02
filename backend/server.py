@@ -67,6 +67,7 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserCreate(BaseModel):
+    id: Optional[str] = None
     name: str
     email: str
     year_level: int = Field(ge=9, le=12)
