@@ -56,7 +56,6 @@ const App = () => {
 
   const loadUserData = async () => {
     try {
-      setLoading(true);
       const [tasksRes, activitiesRes, statsRes] = await Promise.all([
         axios.get(`${API}/users/${DEMO_USER.id}/tasks`),
         axios.get(`${API}/users/${DEMO_USER.id}/activities`),
@@ -68,8 +67,6 @@ const App = () => {
       setStats(statsRes.data);
     } catch (error) {
       console.error("Error loading user data:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
