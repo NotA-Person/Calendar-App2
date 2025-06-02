@@ -24,6 +24,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showActivityForm, setShowActivityForm] = useState(false);
+  const [notification, setNotification] = useState("");
 
   useEffect(() => {
     loadUserData();
