@@ -413,7 +413,19 @@ const CalendarView = ({ tasks, activities }) => {
     <div className="px-4 py-6 sm:px-0">
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Calendar</h2>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Calendar</h2>
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                <span className="text-sm text-gray-600">School Tasks</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span className="text-sm text-gray-600">Activities</span>
+              </div>
+            </div>
+          </div>
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
