@@ -1,54 +1,911 @@
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+// Mock user for demo
+const DEMO_USER = {
+  id: "demo-user-123",
+  name: "Alex Student",
+  email: "alex@school.edu",
+  year_level: 11,
+  theme: "light",
+  default_view: "month",
+  subjects: ["Mathematics", "Physics", "Chemistry", "English", "History"]
+};
+
+const App = () => {
+  const [currentView, setCurrentView] = useState("dashboard");
+  const [tasks, setTasks] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showActivityForm, setShowActivityForm] = useState(false);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      setLoading(true);
+      const [tasksRes, activitiesRes, statsRes] = await Promise.all([
+        axios.get(`${API}/users/${DEMO_USER.id}/tasks`),
+        axios.get(`${API}/users/${DEMO_USER.id}/activities`),
+        axios.get(`${API}/users/${DEMO_USER.id}/stats`)
+      ]);
+      
+      setTasks(tasksRes.data);
+      setActivities(activitiesRes.data);
+      setStats(statsRes.data);
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const createTask = async (taskData) => {
+    try {
+      const response = await axios.post(`${API}/users/${DEMO_USER.id}/tasks`, taskData);
+      setTasks([...tasks, response.data]);
+      setShowTaskForm(false);
+      loadUserData(); // Refresh stats
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
+  };
+
+  const createActivity = async (activityData) => {
+    try {
+      const response = await axios.post(`${API}/users/${DEMO_USER.id}/activities`, activityData);
+      setActivities([...activities, response.data]);
+      setShowActivityForm(false);
+      loadUserData(); // Refresh stats
+    } catch (error) {
+      console.error("Error creating activity:", error);
+    }
+  };
+
+  const toggleTaskCompletion = async (taskId, completed) => {
+    try {
+      const response = await axios.put(`${API}/tasks/${taskId}`, { completed });
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, completed } : task
+      ));
+      loadUserData(); // Refresh stats
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your schedule...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold text-purple-600">
+                  📅 StudyTime
+                </h1>
+              </div>
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
+                <button
+                  onClick={() => setCurrentView("dashboard")}
+                  className={`nav-item ${currentView === "dashboard" ? "nav-item-active" : "nav-item-inactive"}`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setCurrentView("calendar")}
+                  className={`nav-item ${currentView === "calendar" ? "nav-item-active" : "nav-item-inactive"}`}
+                >
+                  Calendar
+                </button>
+                <button
+                  onClick={() => setCurrentView("tasks")}
+                  className={`nav-item ${currentView === "tasks" ? "nav-item-active" : "nav-item-inactive"}`}
+                >
+                  Tasks
+                </button>
+                <button
+                  onClick={() => setCurrentView("activities")}
+                  className={`nav-item ${currentView === "activities" ? "nav-item-active" : "nav-item-inactive"}`}
+                >
+                  Activities
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-500">
+                Welcome, {DEMO_USER.name} (Year {DEMO_USER.year_level})
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {currentView === "dashboard" && (
+          <Dashboard 
+            stats={stats} 
+            tasks={tasks} 
+            activities={activities}
+            onCreateTask={() => setShowTaskForm(true)}
+            onCreateActivity={() => setShowActivityForm(true)}
+          />
+        )}
+        
+        {currentView === "calendar" && (
+          <CalendarView tasks={tasks} activities={activities} />
+        )}
+        
+        {currentView === "tasks" && (
+          <TasksView 
+            tasks={tasks} 
+            onToggleComplete={toggleTaskCompletion}
+            onCreateTask={() => setShowTaskForm(true)}
+          />
+        )}
+        
+        {currentView === "activities" && (
+          <ActivitiesView 
+            activities={activities}
+            onCreateActivity={() => setShowActivityForm(true)}
+          />
+        )}
+      </main>
+
+      {showTaskForm && (
+        <TaskForm 
+          subjects={DEMO_USER.subjects}
+          onSubmit={createTask}
+          onCancel={() => setShowTaskForm(false)}
+        />
+      )}
+
+      {showActivityForm && (
+        <ActivityForm 
+          onSubmit={createActivity}
+          onCancel={() => setShowActivityForm(false)}
+        />
+      )}
     </div>
   );
 };
 
-function App() {
+const Dashboard = ({ stats, tasks, activities, onCreateTask, onCreateActivity }) => {
+  const upcomingTasks = tasks
+    .filter(task => !task.completed)
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+    .slice(0, 5);
+
+  const upcomingActivities = activities
+    .filter(activity => new Date(activity.start_datetime) > new Date())
+    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
+    .slice(0, 5);
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="px-4 py-6 sm:px-0">
+      <div className="border-4 border-dashed border-gray-200 rounded-lg p-6">
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+        
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="stats-card stats-card-total">
+            <div className="text-white">
+              <h3 className="text-lg font-semibold">Total Tasks</h3>
+              <p className="text-3xl font-bold">{stats.total_tasks || 0}</p>
+            </div>
+          </div>
+          <div className="stats-card stats-card-completed">
+            <div className="text-white">
+              <h3 className="text-lg font-semibold">Completed</h3>
+              <p className="text-3xl font-bold">{stats.completed_tasks || 0}</p>
+            </div>
+          </div>
+          <div className="stats-card stats-card-pending">
+            <div className="text-white">
+              <h3 className="text-lg font-semibold">Pending</h3>
+              <p className="text-3xl font-bold">{stats.pending_tasks || 0}</p>
+            </div>
+          </div>
+          <div className="stats-card stats-card-overdue">
+            <div className="text-white">
+              <h3 className="text-lg font-semibold">Overdue</h3>
+              <p className="text-3xl font-bold">{stats.overdue_tasks || 0}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <button
+            onClick={onCreateTask}
+            className="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-2xl text-left transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1"
+          >
+            <div className="text-2xl mb-2">📚</div>
+            <h3 className="text-xl font-semibold">Add School Task</h3>
+            <p className="text-purple-100">Create assignments, tests, or projects</p>
+          </button>
+          
+          <button
+            onClick={onCreateActivity}
+            className="bg-green-600 hover:bg-green-700 text-white p-6 rounded-2xl text-left transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1"
+          >
+            <div className="text-2xl mb-2">🏃</div>
+            <h3 className="text-xl font-semibold">Add Activity</h3>
+            <p className="text-green-100">Schedule sports, clubs, or events</p>
+          </button>
+        </div>
+
+        {/* Upcoming Items */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Tasks</h3>
+            {upcomingTasks.length > 0 ? (
+              <ul className="space-y-3">
+                {upcomingTasks.map(task => (
+                  <li key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="font-medium text-gray-900">{task.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {task.subject} • Due: {new Date(task.due_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium
+                      ${task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'}
+                    `}>
+                      {task.priority}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No upcoming tasks</p>
+            )}
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Activities</h3>
+            {upcomingActivities.length > 0 ? (
+              <ul className="space-y-3">
+                {upcomingActivities.map(activity => (
+                  <li key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="font-medium text-gray-900">{activity.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {activity.activity_type} • {new Date(activity.start_datetime).toLocaleString()}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      {activity.activity_type}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No upcoming activities</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+const CalendarView = ({ tasks, activities }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("month");
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay();
+
+    const days = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDay; i++) {
+      days.push(null);
+    }
+    
+    // Add all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const getItemsForDate = (date) => {
+    if (!date) return [];
+    
+    const dateStr = date.toDateString();
+    const items = [];
+    
+    // Add tasks
+    tasks.forEach(task => {
+      const taskDate = new Date(task.due_date).toDateString();
+      if (taskDate === dateStr) {
+        items.push({ ...task, type: 'task' });
+      }
+    });
+    
+    // Add activities
+    activities.forEach(activity => {
+      const activityDate = new Date(activity.start_datetime).toDateString();
+      if (activityDate === dateStr) {
+        items.push({ ...activity, type: 'activity' });
+      }
+    });
+    
+    return items;
+  };
+
+  const days = getDaysInMonth(currentDate);
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  return (
+    <div className="px-4 py-6 sm:px-0">
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">Calendar</h2>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+              className="p-2 hover:bg-gray-100 rounded-xl"
+            >
+              ←
+            </button>
+            <h3 className="text-xl font-semibold">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h3>
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+              className="p-2 hover:bg-gray-100 rounded-xl"
+            >
+              →
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+            <div key={day} className="p-3 text-center font-medium text-gray-500">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((date, index) => {
+            const items = getItemsForDate(date);
+            const isToday = date && date.toDateString() === new Date().toDateString();
+            
+            return (
+              <div
+                key={index}
+                className={`min-h-[120px] p-2 border border-gray-100 ${
+                  date ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
+                } ${isToday ? 'ring-2 ring-purple-500' : ''}`}
+              >
+                {date && (
+                  <>
+                    <div className={`text-sm mb-1 ${isToday ? 'font-bold text-purple-600' : 'text-gray-700'}`}>
+                      {date.getDate()}
+                    </div>
+                    <div className="space-y-1">
+                      {items.slice(0, 3).map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`text-xs p-1 rounded truncate ${
+                            item.type === 'task' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                          title={item.title}
+                        >
+                          {item.title}
+                        </div>
+                      ))}
+                      {items.length > 3 && (
+                        <div className="text-xs text-gray-500">
+                          +{items.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TasksView = ({ tasks, onToggleComplete, onCreateTask }) => {
+  const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("due_date");
+
+  const filteredTasks = tasks.filter(task => {
+    if (filter === "completed") return task.completed;
+    if (filter === "pending") return !task.completed;
+    if (filter === "overdue") {
+      return !task.completed && new Date(task.due_date) < new Date();
+    }
+    return true;
+  });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (sortBy === "due_date") {
+      return new Date(a.due_date) - new Date(b.due_date);
+    }
+    if (sortBy === "priority") {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    }
+    return a.title.localeCompare(b.title);
+  });
+
+  return (
+    <div className="px-4 py-6 sm:px-0">
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">Tasks</h2>
+          <button
+            onClick={onCreateTask}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+          >
+            + Add Task
+          </button>
+        </div>
+
+        <div className="flex space-x-4 mb-6">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          >
+            <option value="all">All Tasks</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="overdue">Overdue</option>
+          </select>
+          
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          >
+            <option value="due_date">Sort by Due Date</option>
+            <option value="priority">Sort by Priority</option>
+            <option value="title">Sort by Title</option>
+          </select>
+        </div>
+
+        <div className="space-y-4">
+          {sortedTasks.map(task => (
+            <div key={task.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={(e) => onToggleComplete(task.id, e.target.checked)}
+                    className="h-5 w-5 text-purple-600 rounded"
+                  />
+                  <div>
+                    <h3 className={`font-semibold ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                      {task.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {task.subject} • {task.task_type} • Due: {new Date(task.due_date).toLocaleString()}
+                    </p>
+                    {task.description && (
+                      <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium
+                    ${task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                      task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'}
+                  `}>
+                    {task.priority}
+                  </span>
+                  {new Date(task.due_date) < new Date() && !task.completed && (
+                    <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                      Overdue
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {sortedTasks.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <p>No tasks found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ActivitiesView = ({ activities, onCreateActivity }) => {
+  const [filter, setFilter] = useState("all");
+
+  const filteredActivities = activities.filter(activity => {
+    if (filter === "upcoming") {
+      return new Date(activity.start_datetime) > new Date();
+    }
+    if (filter === "past") {
+      return new Date(activity.end_datetime) < new Date();
+    }
+    if (filter !== "all") {
+      return activity.activity_type === filter;
+    }
+    return true;
+  });
+
+  const sortedActivities = [...filteredActivities].sort((a, b) => 
+    new Date(a.start_datetime) - new Date(b.start_datetime)
+  );
+
+  return (
+    <div className="px-4 py-6 sm:px-0">
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">Activities</h2>
+          <button
+            onClick={onCreateActivity}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+          >
+            + Add Activity
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="border border-gray-300 rounded-xl px-3 py-2"
+          >
+            <option value="all">All Activities</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+            <option value="sports">Sports</option>
+            <option value="club">Club</option>
+            <option value="meeting">Meeting</option>
+            <option value="practice">Practice</option>
+            <option value="competition">Competition</option>
+            <option value="event">Event</option>
+          </select>
+        </div>
+
+        <div className="space-y-4">
+          {sortedActivities.map(activity => (
+            <div key={activity.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900">{activity.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    {new Date(activity.start_datetime).toLocaleString()} - {new Date(activity.end_datetime).toLocaleString()}
+                  </p>
+                  {activity.location && (
+                    <p className="text-sm text-gray-500">📍 {activity.location}</p>
+                  )}
+                  {activity.description && (
+                    <p className="text-sm text-gray-500 mt-1">{activity.description}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    {activity.activity_type}
+                  </span>
+                  {new Date(activity.start_datetime) > new Date() && (
+                    <div className="text-xs text-green-600 mt-1">Upcoming</div>
+                  )}
+                  {new Date(activity.end_datetime) < new Date() && (
+                    <div className="text-xs text-gray-500 mt-1">Completed</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {sortedActivities.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <p>No activities found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TaskForm = ({ subjects, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    subject: subjects[0] || "",
+    task_type: "assignment",
+    priority: "medium",
+    due_date: "",
+    due_time: "",
+    estimated_duration: "",
+    color: "#6366f1"
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      due_date: new Date(formData.due_date + "T" + (formData.due_time || "23:59")).toISOString(),
+      estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null
+    };
+    delete submitData.due_time;
+    onSubmit(submitData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-bold mb-4">Create New Task</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <select
+              value={formData.subject}
+              onChange={(e) => setFormData({...formData, subject: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              required
+            >
+              {subjects.map(subject => (
+                <option key={subject} value={subject}>{subject}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select
+              value={formData.task_type}
+              onChange={(e) => setFormData({...formData, task_type: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+            >
+              <option value="assignment">Assignment</option>
+              <option value="test">Test</option>
+              <option value="project">Project</option>
+              <option value="homework">Homework</option>
+              <option value="study">Study</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              value={formData.priority}
+              onChange={(e) => setFormData({...formData, priority: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                className="w-full border border-gray-300 rounded-xl px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Due Time</label>
+              <input
+                type="time"
+                value={formData.due_time}
+                onChange={(e) => setFormData({...formData, due_time: e.target.value})}
+                className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              rows="3"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Create Task
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ActivityForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    activity_type: "sports",
+    start_datetime: "",
+    end_datetime: "",
+    location: "",
+    color: "#10b981"
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      start_datetime: new Date(formData.start_datetime).toISOString(),
+      end_datetime: new Date(formData.end_datetime).toISOString()
+    };
+    onSubmit(submitData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-bold mb-4">Create New Activity</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select
+              value={formData.activity_type}
+              onChange={(e) => setFormData({...formData, activity_type: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+            >
+              <option value="sports">Sports</option>
+              <option value="club">Club</option>
+              <option value="meeting">Meeting</option>
+              <option value="practice">Practice</option>
+              <option value="competition">Competition</option>
+              <option value="event">Event</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+            <input
+              type="datetime-local"
+              value={formData.start_datetime}
+              onChange={(e) => setFormData({...formData, start_datetime: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+            <input
+              type="datetime-local"
+              value={formData.end_datetime}
+              onChange={(e) => setFormData({...formData, end_datetime: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              placeholder="Where is this activity?"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2"
+              rows="3"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Create Activity
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export default App;

@@ -1,38 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Component Classes */
+.nav-item {
+  @apply inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors duration-200;
+}
+
+.nav-item-active {
+  @apply border-purple-500 text-purple-600;
+}
+
+.nav-item-inactive {
+  @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+}
+
+/* Stats Cards */
+.stats-card {
+  @apply p-6 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1;
+}
+
+.stats-card-total {
+  @apply bg-gradient-to-r from-purple-500 to-indigo-600;
+}
+
+.stats-card-completed {
+  @apply bg-gradient-to-r from-green-500 to-emerald-600;
+}
+
+.stats-card-pending {
+  @apply bg-gradient-to-r from-yellow-500 to-orange-600;
+}
+
+.stats-card-overdue {
+  @apply bg-gradient-to-r from-red-500 to-pink-600;
+}
+
+/* Global Styles */
 .App {
-    text-align: center;
-}
-
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  text-align: left;
 }
 
 .App-link {
-    color: #61dafb;
+  color: #61dafb;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.App-header {
+  background-color: #ffffff;
+  padding: 20px;
+  color: black;
+  text-align: center;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+}
+
+.App-header img {
+  height: 100px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Form styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select,
+textarea {
+  @apply transition-colors duration-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500;
+}
+
+/* Button hover effects */
+button {
+  @apply transition-all duration-200;
+}
+
+/* Calendar specific styles */
+.calendar-day {
+  @apply min-h-[120px] p-2 border border-gray-200 bg-white hover:bg-gray-50 transition-colors duration-150;
+}
+
+.calendar-day.today {
+  @apply ring-2 ring-purple-500 ring-inset;
+}
+
+.calendar-item {
+  @apply text-xs p-1 rounded truncate mb-1;
+}
+
+.calendar-item.task {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.calendar-item.activity {
+  @apply bg-green-100 text-green-800;
+}
+
+/* Priority badges */
+.priority-high {
+  @apply bg-red-100 text-red-800;
+}
+
+.priority-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.priority-low {
+  @apply bg-green-100 text-green-800;
+}
+
+/* Activity type badges */
+.activity-sports {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.activity-club {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.activity-meeting {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.activity-practice {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.activity-competition {
+  @apply bg-red-100 text-red-800;
+}
+
+.activity-event {
+  @apply bg-pink-100 text-pink-800;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1;
+}
+
+/* Responsive design helpers */
+@media (max-width: 640px) {
+  .stats-card {
+    @apply p-4;
+  }
+  
+  .calendar-day {
+    @apply min-h-[80px] p-1;
+  }
+  
+  .calendar-item {
+    @apply text-xs p-0.5;
+  }
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply outline-none ring-2 ring-purple-500 ring-offset-2;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  @apply rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+}
+
+.modal-content {
+  @apply bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto;
 }
