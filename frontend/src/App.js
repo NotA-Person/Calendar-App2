@@ -51,22 +51,36 @@ const App = () => {
   const createTask = async (taskData) => {
     try {
       const response = await axios.post(`${API}/users/${DEMO_USER.id}/tasks`, taskData);
+      // Immediately update tasks state for instant UI feedback
       setTasks([...tasks, response.data]);
       setShowTaskForm(false);
-      loadUserData(); // Refresh stats
+      
+      // Refresh all data to ensure consistency
+      await loadUserData();
+      
+      // Show success feedback
+      console.log("✅ Task created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating task:", error);
+      alert("Failed to create task. Please try again.");
     }
   };
 
   const createActivity = async (activityData) => {
     try {
       const response = await axios.post(`${API}/users/${DEMO_USER.id}/activities`, activityData);
+      // Immediately update activities state for instant UI feedback
       setActivities([...activities, response.data]);
       setShowActivityForm(false);
-      loadUserData(); // Refresh stats
+      
+      // Refresh all data to ensure consistency
+      await loadUserData();
+      
+      // Show success feedback
+      console.log("✅ Activity created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating activity:", error);
+      alert("Failed to create activity. Please try again.");
     }
   };
 
