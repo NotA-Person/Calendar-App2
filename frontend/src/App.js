@@ -27,8 +27,32 @@ const App = () => {
   const [notification, setNotification] = useState("");
 
   useEffect(() => {
-    loadUserData();
+    initializeApp();
   }, []);
+
+  const initializeApp = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if demo user exists, create if not
+      try {
+        await axios.get(`${API}/users/${DEMO_USER.id}`);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // Create demo user if it doesn't exist
+          await axios.post(`${API}/users`, DEMO_USER);
+          console.log("Demo user created successfully");
+        }
+      }
+      
+      // Load user data
+      await loadUserData();
+    } catch (error) {
+      console.error("Error initializing app:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadUserData = async () => {
     try {
