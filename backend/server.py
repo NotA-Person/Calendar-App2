@@ -164,7 +164,12 @@ class ActivityUpdate(BaseModel):
 # User routes
 @api_router.post("/users", response_model=User)
 async def create_user(user_data: UserCreate):
-    user = User(**user_data.dict())
+    # Check if a custom ID was provided, otherwise generate one
+    user_dict = user_data.dict()
+    if not user_dict.get('id'):
+        user_dict['id'] = str(uuid.uuid4())
+    
+    user = User(**user_dict)
     result = await db.users.insert_one(user.dict())
     return user
 
