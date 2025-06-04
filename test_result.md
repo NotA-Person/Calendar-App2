@@ -307,6 +307,9 @@ test_plan:
     - "Activity management view"
     - "Task creation form with all fields"
     - "Activity creation form with scheduling"
+    - "User authentication system with login/signup"
+    - "Weekly timetable view"
+    - "Enhanced completion checkboxes"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
