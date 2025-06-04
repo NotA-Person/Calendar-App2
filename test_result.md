@@ -349,14 +349,17 @@ test_plan:
 
   - task: "Get all users API endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/users endpoint to support login system by finding existing users by email"
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested GET /api/users endpoint. The endpoint correctly returns a list of all users in the system. This endpoint is essential for the login functionality to find users by email."
   - agent: "testing"
     message: "Completed comprehensive testing of all backend API endpoints. Created and executed backend_test.py which tests all core functionality. All backend components are working correctly: Core API health, User management, Task management, Activity management, Calendar integration, and Dashboard statistics. The backend is fully functional and ready for frontend integration. Frontend testing can now proceed."
