@@ -295,6 +295,20 @@ def run_all_tests():
     
     # Test user management
     print("\n--- Testing User Management ---")
+    
+    # Test getting all users first
+    success, response, error = run_test(test_get_all_users)
+    print_test_result("Get all users", success, response, error)
+    
+    # Test creating user with custom ID
+    success, response, error = run_test(test_create_user_with_custom_id)
+    print_test_result("Create user with custom ID", success, response, error)
+    
+    if success:
+        custom_user_id = response.json()["id"]
+        print(f"Created test user with custom ID: {custom_user_id}")
+    
+    # Test regular user creation
     success, response, error = run_test(test_create_user)
     print_test_result("Create user", success, response, error)
     
