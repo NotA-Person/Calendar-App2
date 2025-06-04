@@ -361,5 +361,23 @@ test_plan:
       - working: true
         agent: "testing"
         comment: "Successfully tested GET /api/users endpoint. The endpoint correctly returns a list of all users in the system. This endpoint is essential for the login functionality to find users by email."
+  - task: "User creation with custom IDs"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced user creation to accept optional custom IDs for authentication system"
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested user creation with custom IDs. The system correctly accepts and uses the provided ID when creating a new user. This feature is working as expected and supports the authentication system."
+
+agent_communication:
   - agent: "testing"
     message: "Completed comprehensive testing of all backend API endpoints. Created and executed backend_test.py which tests all core functionality. All backend components are working correctly: Core API health, User management, Task management, Activity management, Calendar integration, and Dashboard statistics. The backend is fully functional and ready for frontend integration. Frontend testing can now proceed."
+  - agent: "testing"
+    message: "Successfully tested the new authentication-related backend features. The GET /api/users endpoint is working correctly and returns all users in the system. User creation with custom IDs is also functioning properly. All existing functionality remains intact and backward compatible. The backend is ready to support the frontend authentication system."
