@@ -173,6 +173,11 @@ async def create_user(user_data: UserCreate):
     result = await db.users.insert_one(user.dict())
     return user
 
+@api_router.get("/users", response_model=List[User])
+async def get_all_users():
+    users = await db.users.find({}).to_list(1000)
+    return [User(**user) for user in users]
+
 @api_router.get("/users/{user_id}", response_model=User)
 async def get_user(user_id: str):
     user = await db.users.find_one({"id": user_id})
