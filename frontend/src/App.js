@@ -31,23 +31,16 @@ const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     // For demo purposes, we'll create a simple login system
-    // In a real app, you'd validate credentials against a backend
     try {
-      // Check if user exists by email, if not create a new user
-      const users = await axios.get(`${API}/users`);
-      let foundUser = users.data?.find(u => u.email === email);
-      
-      if (!foundUser) {
-        // Create new user for demo
-        const userData = {
-          name: email.split('@')[0],
-          email: email,
-          year_level: 11,
-          subjects: ["Mathematics", "Physics", "Chemistry", "English", "History"]
-        };
-        const response = await axios.post(`${API}/users`, userData);
-        foundUser = response.data;
-      }
+      // Create new user for demo (simplified authentication)
+      const userData = {
+        name: email.split('@')[0],
+        email: email,
+        year_level: 11,
+        subjects: ["Mathematics", "Physics", "Chemistry", "English", "History"]
+      };
+      const response = await axios.post(`${API}/users`, userData);
+      const foundUser = response.data;
       
       setUser(foundUser);
       localStorage.setItem('currentUser', JSON.stringify(foundUser));
@@ -474,7 +467,6 @@ const Navigation = ({ currentView, setCurrentView, user }) => {
     </nav>
   );
 };
-};
 
 const Dashboard = ({ stats, tasks, activities, onCreateTask, onCreateActivity }) => {
   const upcomingTasks = tasks
@@ -600,7 +592,6 @@ const Dashboard = ({ stats, tasks, activities, onCreateTask, onCreateActivity })
 
 const CalendarView = ({ tasks, activities }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("month");
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -672,7 +663,7 @@ const CalendarView = ({ tasks, activities }) => {
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Calendar</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Monthly Calendar</h2>
             <div className="flex items-center space-x-4 mt-2">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-purple-500 rounded"></div>
@@ -759,6 +750,176 @@ const CalendarView = ({ tasks, activities }) => {
   );
 };
 
+const WeeklyView = ({ tasks, activities }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getWeekDays = (date) => {
+    const startOfWeek = new Date(date);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day;
+    startOfWeek.setDate(diff);
+
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      weekDays.push(day);
+    }
+    return weekDays;
+  };
+
+  const getItemsForDate = (date) => {
+    const targetDateStr = date.toISOString().split('T')[0];
+    const items = [];
+    
+    // Add tasks
+    tasks.forEach(task => {
+      try {
+        const taskDate = new Date(task.due_date);
+        const taskDateStr = taskDate.toISOString().split('T')[0];
+        if (taskDateStr === targetDateStr) {
+          items.push({ ...task, type: 'task' });
+        }
+      } catch (error) {
+        console.warn('Invalid task date:', task.due_date);
+      }
+    });
+    
+    // Add activities
+    activities.forEach(activity => {
+      try {
+        const activityDate = new Date(activity.start_datetime);
+        const activityDateStr = activityDate.toISOString().split('T')[0];
+        if (activityDateStr === targetDateStr) {
+          items.push({ ...activity, type: 'activity', time: activityDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+        }
+      } catch (error) {
+        console.warn('Invalid activity date:', activity.start_datetime);
+      }
+    });
+    
+    return items.sort((a, b) => {
+      if (a.type === 'activity' && b.type === 'activity') {
+        return new Date(a.start_datetime) - new Date(b.start_datetime);
+      }
+      return 0;
+    });
+  };
+
+  const weekDays = getWeekDays(currentDate);
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+
+  return (
+    <div className="px-4 py-6 sm:px-0">
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Weekly Timetable</h2>
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                <span className="text-sm text-gray-600">School Tasks</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span className="text-sm text-gray-600">Activities</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(currentDate.getDate() - 7);
+                setCurrentDate(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-xl"
+            >
+              ← Previous Week
+            </button>
+            <h3 className="text-lg font-semibold">
+              {weekStart.toLocaleDateString()} - {weekEnd.toLocaleDateString()}
+            </h3>
+            <button
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(currentDate.getDate() + 7);
+                setCurrentDate(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-xl"
+            >
+              Next Week →
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-4">
+          {weekDays.map((date, index) => {
+            const items = getItemsForDate(date);
+            const isToday = date.toDateString() === new Date().toDateString();
+            const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            
+            return (
+              <div
+                key={index}
+                className={`bg-gray-50 rounded-xl p-4 min-h-[400px] ${
+                  isToday ? 'ring-2 ring-purple-500 bg-purple-50' : ''
+                }`}
+              >
+                <div className="text-center mb-4">
+                  <h4 className={`font-semibold ${isToday ? 'text-purple-700' : 'text-gray-700'}`}>
+                    {dayNames[index]}
+                  </h4>
+                  <p className={`text-lg font-bold ${isToday ? 'text-purple-600' : 'text-gray-900'}`}>
+                    {date.getDate()}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  {items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg text-sm ${
+                        item.type === 'task' 
+                          ? 'bg-purple-100 text-purple-800 border-l-4 border-purple-500' 
+                          : 'bg-green-100 text-green-800 border-l-4 border-green-500'
+                      }`}
+                    >
+                      <div className="font-medium">{item.title}</div>
+                      {item.type === 'activity' && item.time && (
+                        <div className="text-xs mt-1">{item.time}</div>
+                      )}
+                      {item.type === 'task' && item.priority && (
+                        <div className={`text-xs mt-1 px-2 py-1 rounded-full inline-block ${
+                          item.priority === 'high' ? 'bg-red-200 text-red-800' :
+                          item.priority === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-green-200 text-green-800'
+                        }`}>
+                          {item.priority} priority
+                        </div>
+                      )}
+                      {item.subject && (
+                        <div className="text-xs text-gray-600 mt-1">{item.subject}</div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {items.length === 0 && (
+                    <div className="text-center text-gray-500 text-sm py-8">
+                      No items scheduled
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TasksView = ({ tasks, onToggleComplete, onCreateTask }) => {
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("due_date");
@@ -823,15 +984,17 @@ const TasksView = ({ tasks, onToggleComplete, onCreateTask }) => {
           {sortedTasks.map(task => (
             <div key={task.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={(e) => onToggleComplete(task.id, e.target.checked)}
-                    className="h-5 w-5 text-purple-600 rounded"
-                  />
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={(e) => onToggleComplete(task.id, e.target.checked)}
+                      className="h-6 w-6 text-purple-600 rounded border-2 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                    />
+                  </div>
                   <div>
-                    <h3 className={`font-semibold ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                    <h3 className={`font-semibold text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                       {task.title}
                     </h3>
                     <p className="text-sm text-gray-600">
@@ -843,7 +1006,7 @@ const TasksView = ({ tasks, onToggleComplete, onCreateTask }) => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium
                     ${task.priority === 'high' ? 'bg-red-100 text-red-800' :
                       task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'}
@@ -851,7 +1014,7 @@ const TasksView = ({ tasks, onToggleComplete, onCreateTask }) => {
                     {task.priority}
                   </span>
                   {new Date(task.due_date) < new Date() && !task.completed && (
-                    <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
                       Overdue
                     </span>
                   )}
