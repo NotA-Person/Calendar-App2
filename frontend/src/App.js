@@ -1,65 +1,112 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import "./App.css";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Mock user for demo
-const DEMO_USER = {
-  id: "demo-user-123",
-  name: "Alex Student",
-  email: "alex@school.edu",
-  year_level: 11,
-  theme: "light",
-  default_view: "month",
-  subjects: ["Mathematics", "Physics", "Chemistry", "English", "History"]
+// Authentication Context
+const AuthContext = createContext();
+
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in from localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const login = async (email, password) => {
+    // For demo purposes, we'll create a simple login system
+    // In a real app, you'd validate credentials against a backend
+    try {
+      // Check if user exists by email, if not create a new user
+      const users = await axios.get(`${API}/users`);
+      let foundUser = users.data?.find(u => u.email === email);
+      
+      if (!foundUser) {
+        // Create new user for demo
+        const userData = {
+          name: email.split('@')[0],
+          email: email,
+          year_level: 11,
+          subjects: ["Mathematics", "Physics", "Chemistry", "English", "History"]
+        };
+        const response = await axios.post(`${API}/users`, userData);
+        foundUser = response.data;
+      }
+      
+      setUser(foundUser);
+      localStorage.setItem('currentUser', JSON.stringify(foundUser));
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed' };
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('currentUser');
+  };
+
+  const value = {
+    user,
+    login,
+    logout,
+    loading
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 const App = () => {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+};
+
+const MainApp = () => {
+  const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState("dashboard");
   const [tasks, setTasks] = useState([]);
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [appLoading, setAppLoading] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [notification, setNotification] = useState("");
 
   useEffect(() => {
-    initializeApp();
-  }, []);
-
-  const initializeApp = async () => {
-    try {
-      setLoading(true);
-      
-      // Check if demo user exists, create if not
-      try {
-        await axios.get(`${API}/users/${DEMO_USER.id}`);
-      } catch (error) {
-        if (error.response?.status === 404) {
-          // Create demo user if it doesn't exist
-          await axios.post(`${API}/users`, DEMO_USER);
-          console.log("Demo user created successfully");
-        }
-      }
-      
-      // Load user data
-      await loadUserData();
-    } catch (error) {
-      console.error("Error initializing app:", error);
-    } finally {
-      setLoading(false);
+    if (user) {
+      loadUserData();
     }
-  };
+  }, [user]);
 
   const loadUserData = async () => {
+    if (!user) return;
+    
     try {
+      setAppLoading(true);
       const [tasksRes, activitiesRes, statsRes] = await Promise.all([
-        axios.get(`${API}/users/${DEMO_USER.id}/tasks`),
-        axios.get(`${API}/users/${DEMO_USER.id}/activities`),
-        axios.get(`${API}/users/${DEMO_USER.id}/stats`)
+        axios.get(`${API}/users/${user.id}/tasks`),
+        axios.get(`${API}/users/${user.id}/activities`),
+        axios.get(`${API}/users/${user.id}/stats`)
       ]);
       
       setTasks(tasksRes.data);
@@ -67,6 +114,8 @@ const App = () => {
       setStats(statsRes.data);
     } catch (error) {
       console.error("Error loading user data:", error);
+    } finally {
+      setAppLoading(false);
     }
   };
 
@@ -77,17 +126,11 @@ const App = () => {
 
   const createTask = async (taskData) => {
     try {
-      const response = await axios.post(`${API}/users/${DEMO_USER.id}/tasks`, taskData);
-      // Immediately update tasks state for instant UI feedback
+      const response = await axios.post(`${API}/users/${user.id}/tasks`, taskData);
       setTasks([...tasks, response.data]);
       setShowTaskForm(false);
-      
-      // Refresh all data to ensure consistency
       await loadUserData();
-      
-      // Show success feedback
       showNotification("✅ Task created and added to calendar!");
-      console.log("✅ Task created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating task:", error);
       showNotification("❌ Failed to create task. Please try again.");
@@ -96,17 +139,11 @@ const App = () => {
 
   const createActivity = async (activityData) => {
     try {
-      const response = await axios.post(`${API}/users/${DEMO_USER.id}/activities`, activityData);
-      // Immediately update activities state for instant UI feedback
+      const response = await axios.post(`${API}/users/${user.id}/activities`, activityData);
       setActivities([...activities, response.data]);
       setShowActivityForm(false);
-      
-      // Refresh all data to ensure consistency
       await loadUserData();
-      
-      // Show success feedback
       showNotification("✅ Activity created and added to calendar!");
-      console.log("✅ Activity created successfully and added to calendar!");
     } catch (error) {
       console.error("Error creating activity:", error);
       showNotification("❌ Failed to create activity. Please try again.");
@@ -119,13 +156,30 @@ const App = () => {
       setTasks(tasks.map(task => 
         task.id === taskId ? { ...task, completed } : task
       ));
-      loadUserData(); // Refresh stats
+      await loadUserData();
+      showNotification(completed ? "✅ Task completed!" : "📝 Task marked as incomplete");
     } catch (error) {
       console.error("Error updating task:", error);
+      showNotification("❌ Failed to update task status");
     }
   };
 
   if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  if (appLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -138,50 +192,11 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-purple-600">
-                  📅 StudyTime
-                </h1>
-              </div>
-              <div className="hidden md:ml-6 md:flex md:space-x-8">
-                <button
-                  onClick={() => setCurrentView("dashboard")}
-                  className={`nav-item ${currentView === "dashboard" ? "nav-item-active" : "nav-item-inactive"}`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => setCurrentView("calendar")}
-                  className={`nav-item ${currentView === "calendar" ? "nav-item-active" : "nav-item-inactive"}`}
-                >
-                  Calendar
-                </button>
-                <button
-                  onClick={() => setCurrentView("tasks")}
-                  className={`nav-item ${currentView === "tasks" ? "nav-item-active" : "nav-item-inactive"}`}
-                >
-                  Tasks
-                </button>
-                <button
-                  onClick={() => setCurrentView("activities")}
-                  className={`nav-item ${currentView === "activities" ? "nav-item-active" : "nav-item-inactive"}`}
-                >
-                  Activities
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
-                Welcome, {DEMO_USER.name} (Year {DEMO_USER.year_level})
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation 
+        currentView={currentView} 
+        setCurrentView={setCurrentView} 
+        user={user}
+      />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {currentView === "dashboard" && (
@@ -196,6 +211,10 @@ const App = () => {
         
         {currentView === "calendar" && (
           <CalendarView tasks={tasks} activities={activities} />
+        )}
+
+        {currentView === "weekly" && (
+          <WeeklyView tasks={tasks} activities={activities} />
         )}
         
         {currentView === "tasks" && (
@@ -216,7 +235,7 @@ const App = () => {
 
       {showTaskForm && (
         <TaskForm 
-          subjects={DEMO_USER.subjects}
+          subjects={user.subjects}
           onSubmit={createTask}
           onCancel={() => setShowTaskForm(false)}
         />
@@ -229,7 +248,6 @@ const App = () => {
         />
       )}
 
-      {/* Notification */}
       {notification && (
         <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50 max-w-sm">
           <p className="text-sm font-medium text-gray-900">{notification}</p>
@@ -237,6 +255,225 @@ const App = () => {
       )}
     </div>
   );
+};
+
+const LoginPage = () => {
+  const { login } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    yearLevel: 11
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const result = await login(formData.email, formData.password);
+    
+    if (!result.success) {
+      setError(result.error || "Login failed");
+    }
+    
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-purple-600 mb-2">📅 StudyTime</h1>
+          <h2 className="text-xl font-semibold text-gray-900">Student Time Management</h2>
+          <p className="mt-2 text-gray-600">Organize your school life with ease</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="flex justify-center mb-6">
+            <div className="bg-gray-100 rounded-xl p-1 flex">
+              <button
+                onClick={() => setIsLogin(true)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isLogin ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => setIsLogin(false)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  !isLogin ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Enter your full name"
+                    required={!isLogin}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                  <select
+                    value={formData.yearLevel}
+                    onChange={(e) => setFormData({...formData, yearLevel: parseInt(e.target.value)})}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value={9}>Year 9</option>
+                    <option value={10}>Year 10</option>
+                    <option value={11}>Year 11</option>
+                    <option value={12}>Year 12</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  {isLogin ? 'Signing In...' : 'Creating Account...'}
+                </div>
+              ) : (
+                isLogin ? 'Sign In' : 'Create Account'
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-purple-600 hover:text-purple-700 font-medium"
+              >
+                {isLogin ? 'Sign up here' : 'Sign in here'}
+              </button>
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center text-sm text-gray-500">
+          <p>Demo: Use any email to create/login to your account</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Navigation = ({ currentView, setCurrentView, user }) => {
+  const { logout } = useAuth();
+
+  return (
+    <nav className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <h1 className="text-2xl font-bold text-purple-600">
+                📅 StudyTime
+              </h1>
+            </div>
+            <div className="hidden md:ml-6 md:flex md:space-x-8">
+              <button
+                onClick={() => setCurrentView("dashboard")}
+                className={`nav-item ${currentView === "dashboard" ? "nav-item-active" : "nav-item-inactive"}`}
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => setCurrentView("calendar")}
+                className={`nav-item ${currentView === "calendar" ? "nav-item-active" : "nav-item-inactive"}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setCurrentView("weekly")}
+                className={`nav-item ${currentView === "weekly" ? "nav-item-active" : "nav-item-inactive"}`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={() => setCurrentView("tasks")}
+                className={`nav-item ${currentView === "tasks" ? "nav-item-active" : "nav-item-inactive"}`}
+              >
+                Tasks
+              </button>
+              <button
+                onClick={() => setCurrentView("activities")}
+                className={`nav-item ${currentView === "activities" ? "nav-item-active" : "nav-item-inactive"}`}
+              >
+                Activities
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-500">
+              Welcome, {user.name} (Year {user.year_level})
+            </div>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
 };
 
 const Dashboard = ({ stats, tasks, activities, onCreateTask, onCreateActivity }) => {
