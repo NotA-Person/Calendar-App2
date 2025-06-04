@@ -91,6 +91,26 @@ def test_create_user():
         return success, response, None
     except Exception as e:
         return False, None, str(e)
+        
+def test_create_user_with_custom_id():
+    try:
+        custom_user = test_user.copy()
+        custom_user["name"] = "Custom ID User"
+        custom_user["email"] = "custom.id@school.edu"
+        custom_user["id"] = f"custom-{random.randint(1000, 9999)}"
+        response = requests.post(f"{API_URL}/users", json=custom_user)
+        success = response.status_code == 200 and response.json()["id"] == custom_user["id"]
+        return success, response, None
+    except Exception as e:
+        return False, None, str(e)
+        
+def test_get_all_users():
+    try:
+        response = requests.get(f"{API_URL}/users")
+        success = response.status_code == 200 and isinstance(response.json(), list)
+        return success, response, None
+    except Exception as e:
+        return False, None, str(e)
 
 def test_get_user(user_id):
     try:
