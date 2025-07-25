@@ -540,7 +540,7 @@ async def get_user_stats(user_id: str):
 async def root():
     return {"message": "Student Time Management API"}
 
-# Include the router in the main app
+# Include the API router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
