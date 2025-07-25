@@ -297,6 +297,79 @@ async def dashboard(request: Request):
         "notification": notification
     })
 
+@app.get("/tasks/create", response_class=HTMLResponse)
+async def create_task_page(request: Request):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    return templates.TemplateResponse("create_task.html", {
+        "request": request,
+        "user": user,
+        "current_view": "tasks"
+    })
+
+@app.post("/tasks/create", response_class=HTMLResponse)
+async def create_task_post(
+    request: Request,
+    title: str = Form(...),
+    subject: str = Form(...),
+    task_type: str = Form(...),
+    priority: str = Form("medium"),
+    due_date: str = Form(...),
+    due_time: Optional[str] = Form(None),
+    description: Optional[str] = Form(None)
+):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Combine date and time
+        if due_time:
+            due_datetime = datetime.fromisoformat(f"{due_date}T{due_time}")
+        else:
+            due_datetime = datetime.fromisoformat(f"{due_date}T23:59")
+        
+        # Create task
+        task_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user.id,
+            "title": title,
+            "description": description,
+            "subject": subject,
+            "task_type": task_type,
+            "priority": priority,
+            "due_date": due_datetime,
+            "completed": False,
+            "completed_at": None,
+            "color": "#6366f1",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await db.tasks.insert_one(task_data)
+        
+        return RedirectResponse(
+            url="/dashboard?notification=✅ Task created and added to calendar!", 
+            status_code=302
+        )
+        
+    except Exception as e:
+        return templates.TemplateResponse("create_task.html", {
+            "request": request,
+            "user": user,
+            "current_view": "tasks",
+            "error": "Failed to create task. Please try again.",
+            "title": title,
+            "subject": subject,
+            "task_type": task_type,
+            "priority": priority,
+            "due_date": due_date,
+            "due_time": due_time,
+            "description": description
+        })
+
 class Activity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
