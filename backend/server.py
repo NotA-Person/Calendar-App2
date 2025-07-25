@@ -27,6 +27,15 @@ db = client[os.environ['DB_NAME']]
 # Create the main app without a prefix
 app = FastAPI()
 
+# Add session middleware
+app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(32))
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="templates")
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
