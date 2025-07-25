@@ -297,12 +297,6 @@ async def dashboard(request: Request):
         "notification": notification
     })
 
-class RecurrencePattern(BaseModel):
-    frequency: str  # daily, weekly, monthly
-    interval: int = 1  # every X days/weeks/months
-    days_of_week: Optional[List[int]] = None  # 0=Monday, 6=Sunday
-    end_date: Optional[date] = None
-
 class Activity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
