@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Login - StudyTime{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-purple-600 mb-2">📅 StudyTime</h1>
+            <h2 class="text-xl font-semibold text-gray-900">Student Time Management</h2>
+            <p class="mt-2 text-gray-600">Organize your school life with ease</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            <div class="flex justify-center mb-6">
+                <div class="bg-gray-100 rounded-xl p-1 flex">
+                    <a href="/login"
+                       class="px-4 py-2 rounded-lg font-medium transition-colors {{ 'bg-purple-600 text-white' if not is_signup else 'text-gray-600 hover:text-gray-800' }}">
+                        Login
+                    </a>
+                    <a href="/signup"
+                       class="px-4 py-2 rounded-lg font-medium transition-colors {{ 'bg-purple-600 text-white' if is_signup else 'text-gray-600 hover:text-gray-800' }}">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            {% if success %}
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4">
+                {{ success }}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-4">
+                {% if is_signup %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" name="name" value="{{ name or '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           placeholder="Enter your full name" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                    <select name="year_level"
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="9" {{ 'selected' if year_level == 9 else '' }}>Year 9</option>
+                        <option value="10" {{ 'selected' if year_level == 10 else '' }}>Year 10</option>
+                        <option value="11" {{ 'selected' if year_level == 11 or not year_level else '' }}>Year 11</option>
+                        <option value="12" {{ 'selected' if year_level == 12 else '' }}>Year 12</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" name="email" value="{{ email or '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           placeholder="Enter your email" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" name="password"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors">
+                    {{ 'Create Account' if is_signup else 'Sign In' }}
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    {% if is_signup %}
+                        Already have an account? 
+                        <a href="/login" class="text-purple-600 hover:text-purple-700 font-medium">Sign in here</a>
+                    {% else %}
+                        Don't have an account? 
+                        <a href="/signup" class="text-purple-600 hover:text-purple-700 font-medium">Sign up here</a>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="text-center text-sm text-gray-500">
+            <p>Demo: Use any email to create/login to your account</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
