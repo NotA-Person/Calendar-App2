@@ -370,6 +370,76 @@ async def create_task_post(
             "description": description
         })
 
+@app.get("/tasks", response_class=HTMLResponse)
+async def tasks_page(request: Request, filter: str = "all", sort: str = "due_date"):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get tasks based on filter
+    query = {"user_id": user.id}
+    now = datetime.utcnow()
+    
+    if filter == "completed":
+        query["completed"] = True
+    elif filter == "pending":
+        query["completed"] = False
+    elif filter == "overdue":
+        query["completed"] = False
+        query["due_date"] = {"$lt": now}
+    
+    tasks_data = await db.tasks.find(query).to_list(1000)
+    tasks = [Task(**task) for task in tasks_data]
+    
+    # Sort tasks
+    if sort == "due_date":
+        tasks.sort(key=lambda t: t.due_date)
+    elif sort == "priority":
+        priority_order = {"high": 3, "medium": 2, "low": 1}
+        tasks.sort(key=lambda t: priority_order.get(t.priority, 0), reverse=True)
+    elif sort == "title":
+        tasks.sort(key=lambda t: t.title.lower())
+    
+    return templates.TemplateResponse("tasks.html", {
+        "request": request,
+        "user": user,
+        "current_view": "tasks",
+        "tasks": tasks,
+        "filter": filter,
+        "sort": sort,
+        "now": now
+    })
+
+@app.post("/tasks/{task_id}/toggle")
+async def toggle_task_completion(request: Request, task_id: str):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get current task
+    task_data = await db.tasks.find_one({"id": task_id, "user_id": user.id})
+    if not task_data:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Toggle completion
+    new_completed = not task_data["completed"]
+    update_data = {
+        "completed": new_completed,
+        "completed_at": datetime.utcnow() if new_completed else None,
+        "updated_at": datetime.utcnow()
+    }
+    
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": update_data}
+    )
+    
+    notification = "✅ Task completed!" if new_completed else "📝 Task marked as incomplete"
+    return RedirectResponse(
+        url=f"/tasks?notification={notification}", 
+        status_code=302
+    )
+
 @app.get("/activities/create", response_class=HTMLResponse)
 async def create_activity_page(request: Request):
     user = await get_user_from_session(request)
