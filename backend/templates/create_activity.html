@@ -1,0 +1,79 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Create Activity - StudyTime{% endblock %}
+
+{% block main_content %}
+<!-- Activity Creation Form Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold mb-4">Create New Activity</h3>
+        
+        {% if error %}
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" name="title" value="{{ title or '' }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                       required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select name="activity_type"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2">
+                    <option value="sports" {{ 'selected' if activity_type == 'sports' or not activity_type else '' }}>Sports</option>
+                    <option value="club" {{ 'selected' if activity_type == 'club' else '' }}>Club</option>
+                    <option value="meeting" {{ 'selected' if activity_type == 'meeting' else '' }}>Meeting</option>
+                    <option value="practice" {{ 'selected' if activity_type == 'practice' else '' }}>Practice</option>
+                    <option value="competition" {{ 'selected' if activity_type == 'competition' else '' }}>Competition</option>
+                    <option value="event" {{ 'selected' if activity_type == 'event' else '' }}>Event</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                <input type="datetime-local" name="start_datetime" value="{{ start_datetime or '' }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                       required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+                <input type="datetime-local" name="end_datetime" value="{{ end_datetime or '' }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                       required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" name="location" value="{{ location or '' }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                       placeholder="Where is this activity?">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description"
+                          class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                          rows="3">{{ description or '' }}</textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="/dashboard"
+                   class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors">
+                    Create Activity
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
