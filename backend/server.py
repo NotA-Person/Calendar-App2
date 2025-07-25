@@ -31,10 +31,10 @@ app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(32))
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=ROOT_DIR / "static"), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=ROOT_DIR / "templates")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
