@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - StudyTime{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-purple-600">📅 StudyTime</h1>
+                </div>
+                <div class="hidden md:ml-6 md:flex md:space-x-8">
+                    <a href="/dashboard"
+                       class="nav-item {{ 'nav-item-active' if current_view == 'dashboard' else 'nav-item-inactive' }}">
+                        Dashboard
+                    </a>
+                    <a href="/calendar"
+                       class="nav-item {{ 'nav-item-active' if current_view == 'calendar' else 'nav-item-inactive' }}">
+                        Monthly
+                    </a>
+                    <a href="/weekly"
+                       class="nav-item {{ 'nav-item-active' if current_view == 'weekly' else 'nav-item-inactive' }}">
+                        Weekly
+                    </a>
+                    <a href="/tasks"
+                       class="nav-item {{ 'nav-item-active' if current_view == 'tasks' else 'nav-item-inactive' }}">
+                        Tasks
+                    </a>
+                    <a href="/activities"
+                       class="nav-item {{ 'nav-item-active' if current_view == 'activities' else 'nav-item-inactive' }}">
+                        Activities
+                    </a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-500">
+                    Welcome, {{ user.name }} (Year {{ user.year_level }})
+                </div>
+                <a href="/logout"
+                   class="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    {% if notification %}
+    <div id="notification" class="fixed top-4 right-4 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50 max-w-sm notification">
+        <p class="text-sm font-medium text-gray-900">{{ notification }}</p>
+    </div>
+    <script>
+        setTimeout(() => {
+            const notification = document.getElementById('notification');
+            if (notification) {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
+    </script>
+    {% endif %}
+
+    {% block main_content %}
+    <!-- Dashboard Content -->
+    <div class="px-4 py-6 sm:px-0">
+        <div class="border-4 border-dashed border-gray-200 rounded-lg p-6">
+            <h2 class="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stats-card stats-card-total">
+                    <div class="text-white">
+                        <h3 class="text-lg font-semibold">Total Tasks</h3>
+                        <p class="text-3xl font-bold">{{ stats.total_tasks or 0 }}</p>
+                    </div>
+                </div>
+                <div class="stats-card stats-card-completed">
+                    <div class="text-white">
+                        <h3 class="text-lg font-semibold">Completed</h3>
+                        <p class="text-3xl font-bold">{{ stats.completed_tasks or 0 }}</p>
+                    </div>
+                </div>
+                <div class="stats-card stats-card-pending">
+                    <div class="text-white">
+                        <h3 class="text-lg font-semibold">Pending</h3>
+                        <p class="text-3xl font-bold">{{ stats.pending_tasks or 0 }}</p>
+                    </div>
+                </div>
+                <div class="stats-card stats-card-overdue">
+                    <div class="text-white">
+                        <h3 class="text-lg font-semibold">Overdue</h3>
+                        <p class="text-3xl font-bold">{{ stats.overdue_tasks or 0 }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <a href="/tasks/create"
+                   class="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-2xl text-left transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1 block">
+                    <div class="text-2xl mb-2">📚</div>
+                    <h3 class="text-xl font-semibold">Add School Task</h3>
+                    <p class="text-purple-100">Create assignments, tests, or projects</p>
+                </a>
+                
+                <a href="/activities/create"
+                   class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-2xl text-left transition-all duration-200 hover:shadow-lg hover:transform hover:-translate-y-1 block">
+                    <div class="text-2xl mb-2">🏃</div>
+                    <h3 class="text-xl font-semibold">Add Activity</h3>
+                    <p class="text-green-100">Schedule sports, clubs, or events</p>
+                </a>
+            </div>
+
+            <!-- Upcoming Items -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Upcoming Tasks</h3>
+                    {% if upcoming_tasks %}
+                        <ul class="space-y-3">
+                            {% for task in upcoming_tasks %}
+                            <li class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <div>
+                                    <p class="font-medium text-gray-900">{{ task.title }}</p>
+                                    <p class="text-sm text-gray-500">
+                                        {{ task.subject }} • Due: {{ task.due_date.strftime('%m/%d/%Y') }}
+                                    </p>
+                                </div>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium priority-{{ task.priority }}">
+                                    {{ task.priority }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 text-center py-8">No upcoming tasks</p>
+                    {% endif %}
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Upcoming Activities</h3>
+                    {% if upcoming_activities %}
+                        <ul class="space-y-3">
+                            {% for activity in upcoming_activities %}
+                            <li class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <div>
+                                    <p class="font-medium text-gray-900">{{ activity.title }}</p>
+                                    <p class="text-sm text-gray-500">
+                                        {{ activity.activity_type }} • {{ activity.start_datetime.strftime('%m/%d/%Y %I:%M %p') }}
+                                    </p>
+                                </div>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                    {{ activity.activity_type }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 text-center py-8">No upcoming activities</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+</main>
+{% endblock %}
