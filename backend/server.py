@@ -370,6 +370,74 @@ async def create_task_post(
             "description": description
         })
 
+@app.get("/activities/create", response_class=HTMLResponse)
+async def create_activity_page(request: Request):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    return templates.TemplateResponse("create_activity.html", {
+        "request": request,
+        "user": user,
+        "current_view": "activities"
+    })
+
+@app.post("/activities/create", response_class=HTMLResponse)
+async def create_activity_post(
+    request: Request,
+    title: str = Form(...),
+    activity_type: str = Form(...),
+    start_datetime: str = Form(...),
+    end_datetime: str = Form(...),
+    location: Optional[str] = Form(None),
+    description: Optional[str] = Form(None)
+):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Parse datetime
+        start_dt = datetime.fromisoformat(start_datetime)
+        end_dt = datetime.fromisoformat(end_datetime)
+        
+        # Create activity
+        activity_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user.id,
+            "title": title,
+            "description": description,
+            "activity_type": activity_type,
+            "start_datetime": start_dt,
+            "end_datetime": end_dt,
+            "location": location,
+            "recurrence": None,
+            "color": "#10b981",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await db.activities.insert_one(activity_data)
+        
+        return RedirectResponse(
+            url="/dashboard?notification=✅ Activity created and added to calendar!", 
+            status_code=302
+        )
+        
+    except Exception as e:
+        return templates.TemplateResponse("create_activity.html", {
+            "request": request,
+            "user": user,
+            "current_view": "activities",
+            "error": "Failed to create activity. Please try again.",
+            "title": title,
+            "activity_type": activity_type,
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime,
+            "location": location,
+            "description": description
+        })
+
 class Activity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
