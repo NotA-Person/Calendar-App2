@@ -1,0 +1,92 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Create Task - StudyTime{% endblock %}
+
+{% block main_content %}
+<!-- Task Creation Form Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold mb-4">Create New Task</h3>
+        
+        {% if error %}
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" name="title" value="{{ title or '' }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                       required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <select name="subject"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                        required>
+                    {% for subject in user.subjects %}
+                    <option value="{{ subject }}" {{ 'selected' if subject == selected_subject else '' }}>{{ subject }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select name="task_type"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2">
+                    <option value="assignment" {{ 'selected' if task_type == 'assignment' else '' }}>Assignment</option>
+                    <option value="test" {{ 'selected' if task_type == 'test' else '' }}>Test</option>
+                    <option value="project" {{ 'selected' if task_type == 'project' else '' }}>Project</option>
+                    <option value="homework" {{ 'selected' if task_type == 'homework' else '' }}>Homework</option>
+                    <option value="study" {{ 'selected' if task_type == 'study' else '' }}>Study</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <select name="priority"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2">
+                    <option value="low" {{ 'selected' if priority == 'low' else '' }}>Low</option>
+                    <option value="medium" {{ 'selected' if priority == 'medium' or not priority else '' }}>Medium</option>
+                    <option value="high" {{ 'selected' if priority == 'high' else '' }}>High</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input type="date" name="due_date" value="{{ due_date or '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                           required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Due Time</label>
+                    <input type="time" name="due_time" value="{{ due_time or '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-3 py-2">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description"
+                          class="w-full border border-gray-300 rounded-xl px-3 py-2"
+                          rows="3">{{ description or '' }}</textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="/dashboard"
+                   class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-medium transition-colors">
+                    Create Task
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
