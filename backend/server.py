@@ -440,6 +440,39 @@ async def toggle_task_completion(request: Request, task_id: str):
         status_code=302
     )
 
+@app.get("/activities", response_class=HTMLResponse)
+async def activities_page(request: Request, filter: str = "all"):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get activities based on filter
+    query = {"user_id": user.id}
+    now = datetime.utcnow()
+    
+    activities_data = await db.activities.find(query).to_list(1000)
+    activities = [Activity(**activity) for activity in activities_data]
+    
+    # Filter activities
+    if filter == "upcoming":
+        activities = [a for a in activities if a.start_datetime > now]
+    elif filter == "past":
+        activities = [a for a in activities if a.end_datetime < now]
+    elif filter != "all":
+        activities = [a for a in activities if a.activity_type == filter]
+    
+    # Sort by start_datetime
+    activities.sort(key=lambda a: a.start_datetime)
+    
+    return templates.TemplateResponse("activities.html", {
+        "request": request,
+        "user": user,
+        "current_view": "activities",
+        "activities": activities,
+        "filter": filter,
+        "now": now
+    })
+
 @app.get("/activities/create", response_class=HTMLResponse)
 async def create_activity_page(request: Request):
     user = await get_user_from_session(request)
