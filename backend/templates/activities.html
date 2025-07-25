@@ -1,0 +1,74 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Activities - StudyTime{% endblock %}
+
+{% block main_content %}
+<div class="px-4 py-6 sm:px-0">
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">Activities</h2>
+            <a href="/activities/create"
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors">
+                + Add Activity
+            </a>
+        </div>
+
+        <div class="mb-6">
+            <form method="GET">
+                <select name="filter" onchange="this.form.submit()"
+                        class="border border-gray-300 rounded-xl px-3 py-2">
+                    <option value="all" {{ 'selected' if filter == 'all' else '' }}>All Activities</option>
+                    <option value="upcoming" {{ 'selected' if filter == 'upcoming' else '' }}>Upcoming</option>
+                    <option value="past" {{ 'selected' if filter == 'past' else '' }}>Past</option>
+                    <option value="sports" {{ 'selected' if filter == 'sports' else '' }}>Sports</option>
+                    <option value="club" {{ 'selected' if filter == 'club' else '' }}>Club</option>
+                    <option value="meeting" {{ 'selected' if filter == 'meeting' else '' }}>Meeting</option>
+                    <option value="practice" {{ 'selected' if filter == 'practice' else '' }}>Practice</option>
+                    <option value="competition" {{ 'selected' if filter == 'competition' else '' }}>Competition</option>
+                    <option value="event" {{ 'selected' if filter == 'event' else '' }}>Event</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="space-y-4">
+            {% if activities %}
+                {% for activity in activities %}
+                <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{{ activity.title }}</h3>
+                            <p class="text-sm text-gray-600">
+                                {{ activity.start_datetime.strftime('%m/%d/%Y %I:%M %p') }} - {{ activity.end_datetime.strftime('%m/%d/%Y %I:%M %p') }}
+                            </p>
+                            {% if activity.location %}
+                            <p class="text-sm text-gray-500">📍 {{ activity.location }}</p>
+                            {% endif %}
+                            {% if activity.description %}
+                            <p class="text-sm text-gray-500 mt-1">{{ activity.description }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                {{ activity.activity_type }}
+                            </span>
+                            {% if activity.start_datetime > now %}
+                            <div class="text-xs text-green-600 mt-1">Upcoming</div>
+                            {% elif activity.end_datetime < now %}
+                            <div class="text-xs text-gray-500 mt-1">Completed</div>
+                            {% else %}
+                            <div class="text-xs text-blue-600 mt-1">In Progress</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12 text-gray-500">
+                    <p>No activities found</p>
+                    <a href="/activities/create" class="text-green-600 hover:underline">Create your first activity</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
