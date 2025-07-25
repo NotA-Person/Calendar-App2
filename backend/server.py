@@ -141,6 +141,168 @@ class RecurrencePattern(BaseModel):
     days_of_week: Optional[List[int]] = None  # 0=Monday, 6=Sunday
     end_date: Optional[date] = None
 
+# Authentication helpers
+def get_current_user(request: Request):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    return user_id
+
+async def get_user_from_session(request: Request):
+    user_id = get_current_user(request)
+    if not user_id:
+        return None
+    user = await db.users.find_one({"id": user_id})
+    return User(**user) if user else None
+
+# Web Routes
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    user = await get_user_from_session(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return RedirectResponse(url="/login", status_code=302)
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    user = await get_user_from_session(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse("login.html", {
+        "request": request, 
+        "is_signup": False
+    })
+
+@app.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    user = await get_user_from_session(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse("login.html", {
+        "request": request, 
+        "is_signup": True
+    })
+
+@app.post("/login", response_class=HTMLResponse)
+async def login_post(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...)
+):
+    # Simple demo authentication - find user by email
+    users = await db.users.find({"email": email}).to_list(100)
+    if users:
+        user = users[0]
+        request.session["user_id"] = user["id"]
+        return RedirectResponse(url="/dashboard", status_code=302)
+    
+    # If user doesn't exist, show error
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "is_signup": False,
+        "error": "User not found. Please sign up first.",
+        "email": email
+    })
+
+@app.post("/signup", response_class=HTMLResponse)
+async def signup_post(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    year_level: int = Form(...)
+):
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": email})
+    if existing_user:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "is_signup": True,
+            "error": "User with this email already exists.",
+            "name": name,
+            "email": email,
+            "year_level": year_level
+        })
+    
+    # Create new user
+    user_data = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "email": email,
+        "year_level": year_level,
+        "subjects": ["Mathematics", "Physics", "Chemistry", "English", "History"],
+        "theme": "light",
+        "default_view": "month",
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.users.insert_one(user_data)
+    request.session["user_id"] = user_data["id"]
+    
+    return RedirectResponse(url="/dashboard", status_code=302)
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=302)
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    user = await get_user_from_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get stats
+    total_tasks = await db.tasks.count_documents({"user_id": user.id})
+    completed_tasks = await db.tasks.count_documents({"user_id": user.id, "completed": True})
+    pending_tasks = total_tasks - completed_tasks
+    
+    now = datetime.utcnow()
+    overdue_tasks = await db.tasks.count_documents({
+        "user_id": user.id,
+        "completed": False,
+        "due_date": {"$lt": now}
+    })
+    
+    stats = {
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "pending_tasks": pending_tasks,
+        "overdue_tasks": overdue_tasks
+    }
+    
+    # Get upcoming tasks
+    upcoming_tasks_data = await db.tasks.find({
+        "user_id": user.id,
+        "completed": False
+    }).sort("due_date", 1).limit(5).to_list(5)
+    upcoming_tasks = [Task(**task) for task in upcoming_tasks_data]
+    
+    # Get upcoming activities
+    upcoming_activities_data = await db.activities.find({
+        "user_id": user.id,
+        "start_datetime": {"$gt": now}
+    }).sort("start_datetime", 1).limit(5).to_list(5)
+    upcoming_activities = [Activity(**activity) for activity in upcoming_activities_data]
+    
+    notification = request.query_params.get("notification")
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user,
+        "current_view": "dashboard",
+        "stats": stats,
+        "upcoming_tasks": upcoming_tasks,
+        "upcoming_activities": upcoming_activities,
+        "notification": notification
+    })
+
+class RecurrencePattern(BaseModel):
+    frequency: str  # daily, weekly, monthly
+    interval: int = 1  # every X days/weeks/months
+    days_of_week: Optional[List[int]] = None  # 0=Monday, 6=Sunday
+    end_date: Optional[date] = None
+
 class Activity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
