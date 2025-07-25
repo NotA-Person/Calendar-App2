@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Build a comprehensive time management app for students (Year 9-12) with extracurricular activities, school work deadlines, timetables in calendar format, settings, layout options, priority levels, color coding, recurring events, and progress tracking."
+user_problem_statement: "Convert the React frontend to 100% Python using FastAPI + Jinja2 templates while maintaining all existing functionality including login, dashboard, task/activity management, and enhanced features like settings panel and recurring events."
 
 backend:
   - task: "Core FastAPI backend with MongoDB integration"
